@@ -9,7 +9,6 @@ http://simpson.edu/computer-science/
 Explanation video: http://youtu.be/iwLj7iJCFQM
 """
 import pygame
-import copy
 from math import cos, sin, sqrt, pi
 from random import randint
 
@@ -28,17 +27,11 @@ class Tile(pygame.sprite.Sprite):
         # Call the parent class (Sprite) constructor
         super().__init__()
 
-        self.color = color
         self.size = size
         self.rot = 0
+        self.flipped = False
 
-        self.init_surf = pygame.Surface(
-            (size * 3.1, size * 2.3), pygame.SRCALPHA)
-        # surf4.fill("pink")
-        # pygame.draw.polygon(self.init_surf, self.color, self.draw_hat(
-        #     self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, size))
-        pygame.draw.aalines(self.init_surf, self.color, True, self.draw_hat(
-            self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, size))
+        self.init_surface = self.generate_surface(color)
         self.image = self.init_surf
 
         # Fetch the rectangle object that has the dimensions of the image
@@ -47,13 +40,26 @@ class Tile(pygame.sprite.Sprite):
         # of rect.x and rect.y
         self.rect = self.image.get_rect()
 
+    def generate_surface(self, color, rotation=0, flip=False):
+        self.init_surf = pygame.Surface(
+            (self.size * 3.1, self.size * 2.3), pygame.SRCALPHA)
+        # self.init_surf.fill("pink")
+        pygame.draw.polygon(self.init_surf, color, self.draw_hat(
+            self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, self.size))
+        pygame.draw.lines(self.init_surf, "yellow" if self.flipped else "white", True, self.draw_hat(
+            self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, self.size), 2)
+        self.init_surf = pygame.transform.rotate(self.init_surf, rotation)
+        return pygame.transform.flip(self.init_surf, flip, False)
+
     def rotate_left(self):
-        self.rot += 30
+        self.rot = (self.rot + 30) % 360
+        print(self.rot, self.flipped)
         self.image = self.init_surf.copy()
         self.image = pygame.transform.rotate(self.image, self.rot)
 
     def rotate_right(self):
-        self.rot -= 30
+        self.rot = (self.rot - 30) % 360
+        print(self.rot, self.flipped)
         self.image = self.init_surf.copy()
         self.image = pygame.transform.rotate(self.image, self.rot)
 
@@ -61,6 +67,11 @@ class Tile(pygame.sprite.Sprite):
         image_copy = self.image.copy()
         self.image_copy = pygame.transform.rotate(image_copy, self.rot)
         self.image = pygame.transform.flip(image_copy, True, False)
+        self.flipped = not self.flipped
+        print(self.rot, self.flipped)
+
+    def update(self):
+        pass
 
     def draw_hat(self, x, y, size):
 
@@ -106,14 +117,14 @@ class Player(Tile):
     """ This class represents the player. It derives from block and thus gets
     the same ___init___ method we defined above. """
 
+    def generate_clone(self, color):
+        tile = Tile(color, player.size)
+        tile.image = tile.generate_surface(color, self.rot, self.flipped)
+        tile.rect = player.rect.copy()
+        return tile
+
     def update(self):
-        # """ Method called when updating a sprite. """
-
-        # # Get the current mouse position. This returns the position
-        # # as a list of two numbers.
         pos = pygame.mouse.get_pos()
-
-        # # Now wet the player object to the mouse location
         self.rect.x = pos[0]
         self.rect.y = pos[1]
 
@@ -123,21 +134,20 @@ pygame.init()
 
 # Set the height and width of the screen
 screen_width = 800
-screen_height = 600
+screen_height = 500
 screen = pygame.display.set_mode([screen_width, screen_height])
 
 # This is a list of 'sprites.' Each block in the program is
 # added to this list. The list is managed by a class called 'Group.'
 block_list = pygame.sprite.Group()
 
-# This is a list of every sprite.
-# All blocks and the player block as well.
-all_sprites_list = pygame.sprite.Group()
+
+player_group = pygame.sprite.Group()
 
 
 # Create a RED player block
 player = Player(RED, SIZE)
-all_sprites_list.add(player)
+player_group.add(player)
 
 # Loop until the user clicks the close button.
 done = False
@@ -155,10 +165,8 @@ while not done:
             done = True
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            tile = Tile(WHITE, player.size)
-            tile.image = player.image.copy()
-            tile.rect = player.rect.copy()
-            all_sprites_list.add(tile)
+            tile = player.generate_clone("blue")
+            block_list.add(tile)
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
@@ -170,13 +178,17 @@ while not done:
             if event.key == pygame.K_ESCAPE:
                 done = True
 
-    all_sprites_list.update()
+    if len(block_list) > 5:
+        block_list.remove(block_list.sprites()[0])
+    block_list.update()
+    player_group.update()
 
     # Clear the screen
     screen.fill(BLACK)
 
     # Draw all the spites
-    all_sprites_list.draw(screen)
+    block_list.draw(screen)
+    player_group.draw(screen)
 
     # Limit to 60 frames per second
     clock.tick(60)
