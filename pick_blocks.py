@@ -46,20 +46,18 @@ class Tile(pygame.sprite.Sprite):
         # self.init_surf.fill("pink")
         pygame.draw.polygon(self.init_surf, color, self.draw_hat(
             self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, self.size))
-        pygame.draw.lines(self.init_surf, "yellow" if self.flipped else "white", True, self.draw_hat(
+        pygame.draw.lines(self.init_surf, "red" if flip else "white", True, self.draw_hat(
             self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, self.size), 2)
         self.init_surf = pygame.transform.rotate(self.init_surf, rotation)
         return pygame.transform.flip(self.init_surf, flip, False)
 
     def rotate_left(self):
         self.rot = (self.rot + 30) % 360
-        print(self.rot, self.flipped)
         self.image = self.init_surf.copy()
         self.image = pygame.transform.rotate(self.image, self.rot)
 
     def rotate_right(self):
         self.rot = (self.rot - 30) % 360
-        print(self.rot, self.flipped)
         self.image = self.init_surf.copy()
         self.image = pygame.transform.rotate(self.image, self.rot)
 
@@ -139,15 +137,15 @@ screen = pygame.display.set_mode([screen_width, screen_height])
 
 # This is a list of 'sprites.' Each block in the program is
 # added to this list. The list is managed by a class called 'Group.'
-block_list = pygame.sprite.Group()
+tiles_group = pygame.sprite.Group()
 
 
-player_group = pygame.sprite.Group()
+player_group = pygame.sprite.GroupSingle()
 
 
 # Create a RED player block
-player = Player(RED, SIZE)
-player_group.add(player)
+# player = Player(RED, SIZE)
+# player_group.add(player)
 
 # Loop until the user clicks the close button.
 done = False
@@ -164,30 +162,49 @@ while not done:
         if event.type == pygame.QUIT:
             done = True
 
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            tile = player.generate_clone("blue")
-            block_list.add(tile)
-
-        elif event.type == pygame.KEYDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            (mx, my) = pygame.mouse.get_pos()
+            if len(player_group) > 0:
+                tile = player.generate_clone("blue")
+                tiles_group.add(tile)
+                player.kill()
+            else:
+                for tile in tiles_group:
+                    if tile.rect.collidepoint(mx, my):
+                        player = Player(RED, 50)
+                        print(tile.rot, tile.flipped)
+                        player.rot = tile.rot
+                        player.flipped = tile.flipped
+                        player_group.add(player)
+                        tiles_group.remove(tile)
+        if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
                 player.rotate_right()
             if event.key == pygame.K_LEFT:
                 player.rotate_left()
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_UP:
                 player.flip()
+            if event.key == pygame.K_SPACE:
+                # create a new player
+                player = Player(RED, SIZE)
+                player_group.add(player)
             if event.key == pygame.K_ESCAPE:
                 done = True
 
-    if len(block_list) > 5:
-        block_list.remove(block_list.sprites()[0])
-    block_list.update()
+    if len(tiles_group) > 5:
+        tiles_group.remove(tiles_group.sprites()[0])
+    tiles_group.update()
     player_group.update()
 
     # Clear the screen
     screen.fill(BLACK)
 
     # Draw all the spites
-    block_list.draw(screen)
+    tiles_group.draw(screen)
+    if (len(player_group) == 0):
+        pygame.mouse.set_visible(True)
+    else:
+        pygame.mouse.set_visible(False)
     player_group.draw(screen)
 
     # Limit to 60 frames per second
