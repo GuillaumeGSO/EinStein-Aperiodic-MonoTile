@@ -36,16 +36,10 @@ class Tile(pygame.sprite.Sprite):
 
         self.image = self.generate_surface(color, self.rot, self.flipped)
         self.image_orig = self.image.copy()
-        print(self)
         # self.tile_mask = pygame.mask.from_surface(self.image)
-
-        # Fetch the rectangle object that has the dimensions of the image
-        # image.
-        # Update the position of this object by setting the values
-        # of rect.x and rect.y
         self.rect = self.image.get_rect()
 
-    def generate_copy(self):
+    def generate_image_copy(self):
         image = self.image_orig.copy()
         image = pygame.transform.rotate(image, self.rot)
         image = pygame.transform.flip(image, self.flipped, False)
@@ -70,24 +64,20 @@ class Tile(pygame.sprite.Sprite):
 
     def rotate_left(self):
         print(self)
-        image_copy = self.generate_copy()
+        image_copy = self.generate_image_copy()
         self.rot = (self.rot + 30) % 360
         self.image = pygame.transform.rotate(image_copy, self.rot)
         print(self)
 
     def rotate_right(self):
-        print(self)
-        image_copy = self.generate_copy()
+        image_copy = self.generate_image_copy()
         self.rot = (self.rot - 30) % 360
         self.image = pygame.transform.rotate(image_copy, self.rot)
-        print(self)
 
     def flip(self):
-        print(self)
-        image_copy = self.generate_copy()
+        image_copy = self.generate_image_copy()
         self.image = pygame.transform.flip(image_copy, True, False)
         self.flipped = not self.flipped
-        print(self)
 
     def update(self):
         self.tile_mask = pygame.mask.from_surface(self.image)
@@ -136,13 +126,10 @@ class Player(Tile):
     """ This class represents the player. It derives from block and thus gets
     the same ___init___ method we defined above. """
 
-    def generate_clone(self, color):
-        print("Generate clone")
-        print("player:", self)
+    def generate_new_tile(self, color):
         tile = Tile(color)
         tile.image = tile.generate_surface(color, self.rot, self.flipped)
-        tile.rect = player.rect.copy()
-        print("tile:", tile)
+        tile.rect = self.rect.copy()
 
         return tile
 
@@ -188,13 +175,15 @@ while not done:
         if event.type == pygame.MOUSEBUTTONDOWN:
             (mx, my) = pygame.mouse.get_pos()
 
-            if len(player_group) > 0:
+            if player_group.sprite:
+                player = player_group.sprite
                 # when having a moving player
                 if player.color == "black":  # this is brand new player
                     color = choice(colors)
                 else:
                     color = player.color
-                tile = player.generate_clone(color)
+
+                tile = player.generate_new_tile(color)
                 tiles_group.add(tile)
                 player.kill()
             else:
@@ -203,6 +192,7 @@ while not done:
                     if tile.rect.collidepoint(mx, my):
                         tile_found = True
                         player = Player(tile.color)
+                        player.image = tile.generate_image_copy()
                         player.rot = tile.rot
                         player.flipped = tile.flipped
                         player.rect = tile.rect
