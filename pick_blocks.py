@@ -12,7 +12,8 @@ import pygame
 from math import cos, sin, sqrt, pi
 from random import choice
 
-colors = ["blue", "green", "pink", "purple", "yellow", "orange", "red"]
+colors = ["blue", "aqua", "chocolate", "darkblue",
+          "yellow", "orange", "red", "fuchsia"]
 MAX_NUMBER_OF_TILE = 10
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -168,10 +169,6 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.GroupSingle()
 
 
-# Create a RED player block
-# player = Player(RED, SIZE)
-# player_group.add(player)
-
 # Loop until the user clicks the close button.
 done = False
 
@@ -192,10 +189,11 @@ while not done:
             (mx, my) = pygame.mouse.get_pos()
 
             if len(player_group) > 0:
-                if player.color == "black":
+                # when having a moving player
+                if player.color == "black":  # this is brand new player
                     color = choice(colors)
                 else:
-                    color = tile.color
+                    color = player.color
                 tile = player.generate_clone(color)
                 tiles_group.add(tile)
                 player.kill()
