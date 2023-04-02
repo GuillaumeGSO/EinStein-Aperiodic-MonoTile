@@ -10,29 +10,33 @@ Explanation video: http://youtu.be/iwLj7iJCFQM
 """
 import pygame
 from math import cos, sin, sqrt, pi
-from random import randint
+from random import choice
 
-# Define some colors
-BLACK = (0, 0, 0)
+colors = ["blue", "green", "pink", "purple", "yellow", "orange", "red"]
+MAX_NUMBER_OF_TILE = 10
 WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-
+BLACK = (0, 0, 0)
 SIZE = 50
 
 
 class Tile(pygame.sprite.Sprite):
 
-    def __init__(self, color, size):
+    def __repr__(self) -> str:
+        return f"Rot:{self.rot}, flipped:{self.flipped}, color: {self.color}, image: {self.image}"
+
+    def __init__(self, color):
 
         # Call the parent class (Sprite) constructor
         super().__init__()
 
-        self.size = size
+        self.color = color
         self.rot = 0
         self.flipped = False
 
-        self.init_surface = self.generate_surface(color)
-        self.image = self.init_surf
+        self.image = self.generate_surface(color, self.rot, self.flipped)
+        self.image_orig = self.image.copy()
+        print(self)
+        # self.tile_mask = pygame.mask.from_surface(self.image)
 
         # Fetch the rectangle object that has the dimensions of the image
         # image.
@@ -40,41 +44,57 @@ class Tile(pygame.sprite.Sprite):
         # of rect.x and rect.y
         self.rect = self.image.get_rect()
 
+    def generate_copy(self):
+        image = self.image_orig.copy()
+        image = pygame.transform.rotate(image, self.rot)
+        image = pygame.transform.flip(image, self.flipped, False)
+        return image
+
     def generate_surface(self, color, rotation=0, flip=False):
-        self.init_surf = pygame.Surface(
-            (self.size * 3.1, self.size * 2.3), pygame.SRCALPHA)
-        # self.init_surf.fill("pink")
-        pygame.draw.polygon(self.init_surf, color, self.draw_hat(
-            self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, self.size))
-        pygame.draw.lines(self.init_surf, "red" if flip else "white", True, self.draw_hat(
-            self.init_surf.get_width() / 2, self.init_surf.get_height() / 4.5, self.size), 2)
-        self.init_surf = pygame.transform.rotate(self.init_surf, rotation)
-        return pygame.transform.flip(self.init_surf, flip, False)
+        image = pygame.Surface(
+            (SIZE * 3.1, SIZE * 2.3), pygame.SRCALPHA)
+        # self.rect.center
+        image.fill("pink")
+        pygame.draw.polygon(image, color, self.draw_hat(
+            image.get_width() / 2, image.get_height() / 4.5))
+        pygame.draw.lines(image, "green" if flip else "white", True, self.draw_hat(
+            image.get_width() / 2, image.get_height() / 4.5), 2)
+        pygame.draw.circle(image, "green", (image.get_width(
+        ) / 2, image.get_height() / 2), SIZE/10)
+        image = pygame.transform.rotate(image, rotation)
+        image = pygame.transform.flip(image, flip, False)
+        self.rot = rotation
+        self.flipped = flip
+        return image
 
     def rotate_left(self):
+        print(self)
+        image_copy = self.generate_copy()
         self.rot = (self.rot + 30) % 360
-        self.image = self.init_surf.copy()
-        self.image = pygame.transform.rotate(self.image, self.rot)
+        self.image = pygame.transform.rotate(image_copy, self.rot)
+        print(self)
 
     def rotate_right(self):
+        print(self)
+        image_copy = self.generate_copy()
         self.rot = (self.rot - 30) % 360
-        self.image = self.init_surf.copy()
-        self.image = pygame.transform.rotate(self.image, self.rot)
+        self.image = pygame.transform.rotate(image_copy, self.rot)
+        print(self)
 
     def flip(self):
-        image_copy = self.image.copy()
-        self.image_copy = pygame.transform.rotate(image_copy, self.rot)
+        print(self)
+        image_copy = self.generate_copy()
         self.image = pygame.transform.flip(image_copy, True, False)
         self.flipped = not self.flipped
-        print(self.rot, self.flipped)
+        print(self)
 
     def update(self):
-        pass
+        self.tile_mask = pygame.mask.from_surface(self.image)
 
-    def draw_hat(self, x, y, size):
+    def draw_hat(self, x, y):
 
-        half = size / 2
-        apotheme = size * sqrt(3) / 2
+        half = SIZE / 2
+        apotheme = SIZE * sqrt(3) / 2
 
         # starting point
         start_x = x
@@ -83,7 +103,7 @@ class Tile(pygame.sprite.Sprite):
         point1 = (start_x, start_y),
         point2 = (start_x + (half * sin(pi / 6)),
                   start_y - (half * cos(pi / 6)))
-        point3 = (point2[0] + size, point2[1] + 0)
+        point3 = (point2[0] + SIZE, point2[1] + 0)
         point4 = (point3[0] + half * cos(pi / 3),
                   point3[1] + half * sin(pi / 3))
         point5 = (point4[0] - apotheme * cos(pi / 6),
@@ -116,15 +136,20 @@ class Player(Tile):
     the same ___init___ method we defined above. """
 
     def generate_clone(self, color):
-        tile = Tile(color, player.size)
+        print("Generate clone")
+        print("player:", self)
+        tile = Tile(color)
         tile.image = tile.generate_surface(color, self.rot, self.flipped)
         tile.rect = player.rect.copy()
+        print("tile:", tile)
+
         return tile
 
     def update(self):
         pos = pygame.mouse.get_pos()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
+        self.rect.center = (self.rect.x, self.rect.y)
 
 
 # Initialize Pygame
@@ -154,7 +179,8 @@ done = False
 clock = pygame.time.Clock()
 
 # Hide the mouse cursor
-pygame.mouse.set_visible(False)
+pygame.mouse.set_visible(True)
+
 
 # -------- Main Program Loop -----------
 while not done:
@@ -164,35 +190,44 @@ while not done:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             (mx, my) = pygame.mouse.get_pos()
+
             if len(player_group) > 0:
-                tile = player.generate_clone("blue")
+                if player.color == "black":
+                    color = choice(colors)
+                else:
+                    color = tile.color
+                tile = player.generate_clone(color)
                 tiles_group.add(tile)
                 player.kill()
             else:
+                tile_found = False
                 for tile in tiles_group:
                     if tile.rect.collidepoint(mx, my):
-                        player = Player(RED, 50)
-                        print(tile.rot, tile.flipped)
+                        tile_found = True
+                        player = Player(tile.color)
                         player.rot = tile.rot
                         player.flipped = tile.flipped
+                        player.rect = tile.rect
                         player_group.add(player)
-                        tiles_group.remove(tile)
+                        tile.kill()
+                if not tile_found:
+                    # create a new player
+                    player = Player("black")
+                    player_group.add(player)
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
                 player.rotate_right()
             if event.key == pygame.K_LEFT:
                 player.rotate_left()
-            if event.key == pygame.K_UP:
-                player.flip()
             if event.key == pygame.K_SPACE:
-                # create a new player
-                player = Player(RED, SIZE)
-                player_group.add(player)
+                player.flip()
             if event.key == pygame.K_ESCAPE:
                 done = True
 
-    if len(tiles_group) > 5:
+    if len(tiles_group) > MAX_NUMBER_OF_TILE:
         tiles_group.remove(tiles_group.sprites()[0])
+
     tiles_group.update()
     player_group.update()
 
@@ -204,7 +239,7 @@ while not done:
     if (len(player_group) == 0):
         pygame.mouse.set_visible(True)
     else:
-        pygame.mouse.set_visible(False)
+        pygame.mouse.set_visible(True)
     player_group.draw(screen)
 
     # Limit to 60 frames per second
