@@ -23,7 +23,7 @@ SIZE = 50
 class Tile(pygame.sprite.Sprite):
 
     def __repr__(self) -> str:
-        return f"Rot:{self.rot}, flipped:{self.flipped}, color: {self.color}, image: {self.image}"
+        return f"Rot:{self.rot}, flipped:{self.flipped}, color: {self.color}, image: {self.image}, image.rect: {self.image.get_rect()}"
 
     def __init__(self, color):
 
@@ -48,8 +48,7 @@ class Tile(pygame.sprite.Sprite):
     def generate_surface(self, color, rotation=0, flip=False):
         image = pygame.Surface(
             (SIZE * 3.1, SIZE * 2.3), pygame.SRCALPHA)
-        # self.rect.center
-        image.fill("pink")
+        # image.fill("pink")
         pygame.draw.polygon(image, color, self.draw_hat(
             image.get_width() / 2, image.get_height() / 4.5))
         pygame.draw.lines(image, "green" if flip else "white", True, self.draw_hat(
@@ -63,16 +62,14 @@ class Tile(pygame.sprite.Sprite):
         return image
 
     def rotate_left(self):
-        print(self)
-        image_copy = self.generate_image_copy()
         self.rot = (self.rot + 30) % 360
-        self.image = pygame.transform.rotate(image_copy, self.rot)
-        print(self)
+        image_copy = self.generate_image_copy()
+        self.image = image_copy
 
     def rotate_right(self):
-        image_copy = self.generate_image_copy()
         self.rot = (self.rot - 30) % 360
-        self.image = pygame.transform.rotate(image_copy, self.rot)
+        image_copy = self.generate_image_copy()
+        self.image = image_copy
 
     def flip(self):
         image_copy = self.generate_image_copy()
