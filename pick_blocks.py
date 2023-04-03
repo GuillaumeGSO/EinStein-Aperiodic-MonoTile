@@ -134,7 +134,11 @@ class Player(Tile):
         pos = pygame.mouse.get_pos()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
-        self.rect.center = (self.rect.x, self.rect.y)
+
+        offset_x = self.image.get_size()[0] - self.rect.size[0]
+        offset_y = self.image.get_size()[1] - self.rect.size[1]
+        self.rect.center = (self.rect.x - offset_x / 2,
+                            self.rect.y - offset_y / 2)
 
 
 # Initialize Pygame
