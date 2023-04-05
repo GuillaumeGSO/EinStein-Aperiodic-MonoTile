@@ -37,7 +37,7 @@ class Tile(pg.sprite.Sprite):
         return image
 
     def generate_surface(self, color, rotation=0, flip=False):
-
+        # TODO find a way to change color player when flipped
         image = pg.Surface(
             (SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
         # image.fill("pink")
