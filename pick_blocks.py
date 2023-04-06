@@ -37,7 +37,6 @@ class Tile(pg.sprite.Sprite):
         return image
 
     def generate_surface(self, color, rotation=0, flip=False):
-        # TODO find a way to change color player when flipped
         image = pg.Surface(
             (SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
         # image.fill("pink")
@@ -55,19 +54,18 @@ class Tile(pg.sprite.Sprite):
         return image
 
     def rotate_left(self):
-        self.rot = (self.rot + 30) % 360
-        image_copy = self.generate_image_copy()
-        self.image = image_copy
+        rot = - 30 if self.flipped else 30
+        self.rot = (self.rot + rot) % 360
+        self.image = self.generate_surface(self.color, self.rot, self.flipped)
 
     def rotate_right(self):
-        self.rot = (self.rot - 30) % 360
-        image_copy = self.generate_image_copy()
-        self.image = image_copy
+        rot = 30 if self.flipped else -30
+        self.rot = (self.rot + rot) % 360
+        self.image = self.generate_surface(self.color, self.rot, self.flipped)
 
     def flip(self):
-        image_copy = self.generate_image_copy()
-        self.image = pg.transform.flip(image_copy, True, False)
         self.flipped = not self.flipped
+        self.image = self.generate_surface(self.color, self.rot, self.flipped)
 
     def update(self):
         self.tile_mask = pg.mask.from_surface(self.image)
