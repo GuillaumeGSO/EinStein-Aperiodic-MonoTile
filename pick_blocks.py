@@ -27,7 +27,7 @@ class Tile(pg.sprite.Sprite):
 
         self.image = self.generate_surface(color, self.rot, self.flipped)
         self.image_orig = self.image.copy()
-        # self.tile_mask = pg.mask.from_surface(self.image)
+        self.tile_mask = pg.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
 
     def generate_image_copy(self):
@@ -194,11 +194,17 @@ class Game():
         self.tiles_group.draw(self.app.screen)
         self.player_group.draw(self.app.screen)
 
+    # def collision_test(self):
+    #     collide = pg.sprite.spritecollide(
+    #         self.player, self.tiles_group, False, pg.sprite.collide_mask)
+    #     print(collide)
+    #     return collide
+
     def mouse_click(self, mouse_pos):
         if self.player_group.sprite:
             self.player = self.player_group.sprite
-            # when having a moving player
-            if self.player.color == "black":  # this is brand new player
+            # when having a moving player (ugly FIXME)
+            if self.player.color == "black":
                 color = choice(COLORS)
             else:
                 color = self.player.color
@@ -209,15 +215,18 @@ class Game():
         else:
             tile_found = False
             for tile in self.tiles_group:
-                if tile.rect.collidepoint(mouse_pos[0], mouse_pos[1]):
+                pos_in_mask = mouse_pos[0] - \
+                    tile.rect.x, mouse_pos[1] - tile.rect.y
+                touching = tile.rect.collidepoint(
+                    *mouse_pos) and tile.tile_mask.get_at(pos_in_mask)
+                if touching:
                     tile_found = True
-                    new_player = Player(tile.color)
-                    new_player.image = tile.generate_image_copy()
-                    new_player.rot = tile.rot
-                    new_player.flipped = tile.flipped
-                    new_player.rect = tile.rect
-                    self.player = new_player
-                    self.player_group.add(new_player)
+                    self.player = Player(tile.color)
+                    self.player.image = tile.generate_image_copy()
+                    self.player.rot = tile.rot
+                    self.player.flipped = tile.flipped
+                    self.player.rect = tile.rect
+                    self.player_group.add(self.player)
                     tile.kill()
             if not tile_found:
                 # create a new player
