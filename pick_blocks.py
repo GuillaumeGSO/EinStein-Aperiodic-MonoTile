@@ -6,7 +6,6 @@ import sys
 
 COLORS = [(0, 0, 255), (255, 255, 255), (255, 255, 0),
           (0, 128, 0), (255, 165, 0), (255, 0, 0)]
-MAX_NUMBER_OF_TILE = 10
 SIZE = 50
 FPS = 60
 
@@ -16,7 +15,7 @@ class Tile(pg.sprite.Sprite):
     def __repr__(self) -> str:
         return f"Rot:{self.rot}, flipped:{self.flipped}, color: {self.color}, image: {self.image}, image.rect: {self.image.get_rect()}"
 
-    def __init__(self, color):
+    def __init__(self, color="black"):
 
         # Call the parent class (Sprite) constructor
         super().__init__()
@@ -68,7 +67,8 @@ class Tile(pg.sprite.Sprite):
         self.image = self.generate_surface(self.color, self.rot, self.flipped)
 
     def update(self):
-        self.tile_mask = pg.mask.from_surface(self.image)
+        print("update", self)
+        # self.tile_mask = pg.mask.from_surface(self.image)
 
     def draw_hat(self, x, y):
 
@@ -111,17 +111,20 @@ class Tile(pg.sprite.Sprite):
 
 
 class Player(Tile):
-    """ This class represents the player. It derives from block and thus gets
-    the same ___init___ method we defined above. """
+
+    def __init__(self, color="black"):
+        super().__init__()
+        self.can_drop = True
 
     def generate_new_tile(self, color):
         tile = Tile(color)
         tile.image = tile.generate_surface(color, self.rot, self.flipped)
         tile.rect = self.rect.copy()
-
         return tile
 
     def update(self):
+        print(self.can_drop)
+        self.image = self.generate_surface(self.color, self.rot, self.flipped)
         pos = pg.mouse.get_pos()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
@@ -182,11 +185,12 @@ class App:
 class Game():
     def __init__(self, app):
         self.app = app
-        self.player = Player("pink")
+        self.player = Player()
         self.tiles_group = pg.sprite.Group()
         self.player_group = pg.sprite.GroupSingle()
 
     def update(self):
+        self.player.can_drop = self.collision_test()
         self.player.update()
 
     def draw(self):
@@ -194,11 +198,10 @@ class Game():
         self.tiles_group.draw(self.app.screen)
         self.player_group.draw(self.app.screen)
 
-    # def collision_test(self):
-    #     collide = pg.sprite.spritecollide(
-    #         self.player, self.tiles_group, False, pg.sprite.collide_mask)
-    #     print(collide)
-    #     return collide
+    def collision_test(self):
+        collide = pg.sprite.spritecollide(
+            self.player, self.tiles_group, False, pg.sprite.collide_mask)
+        return len(collide) == 0
 
     def mouse_click(self, mouse_pos):
         if self.player_group.sprite:
@@ -230,7 +233,7 @@ class Game():
                     tile.kill()
             if not tile_found:
                 # create a new player
-                self.player = Player("black")
+                self.player = Player()
                 self.player_group.add(self.player)
 
 
