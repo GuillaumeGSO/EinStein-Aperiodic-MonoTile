@@ -17,7 +17,6 @@ class Tile(pg.sprite.Sprite):
 
     def __init__(self, color="black"):
 
-        # Call the parent class (Sprite) constructor
         super().__init__()
 
         self.color = color
@@ -66,10 +65,6 @@ class Tile(pg.sprite.Sprite):
         self.flipped = not self.flipped
         self.image = self.generate_surface(self.color, self.rot, self.flipped)
 
-    def update(self):
-        print("update", self)
-        # self.tile_mask = pg.mask.from_surface(self.image)
-
     def draw_hat(self, x, y):
 
         half = SIZE / 2
@@ -113,7 +108,7 @@ class Tile(pg.sprite.Sprite):
 class Player(Tile):
 
     def __init__(self, color="black"):
-        super().__init__()
+        super().__init__(color)
         self.can_drop = True
 
     def generate_new_tile(self, color):
