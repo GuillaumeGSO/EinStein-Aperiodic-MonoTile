@@ -23,7 +23,7 @@ class Tile(pg.sprite.Sprite):
         self.rot = 0
         self.flipped = False
 
-        self.image = self.generate_surface(color, self.rot, self.flipped)
+        self.update_surface(color, self.rot, self.flipped)
         self.image_orig = self.image.copy()
         self.tile_mask = pg.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
@@ -34,7 +34,7 @@ class Tile(pg.sprite.Sprite):
         image = pg.transform.flip(image, self.flipped, False)
         return image
 
-    def generate_surface(self, color, rotation=0, flip=False):
+    def update_surface(self, color, rotation=0, flip=False):
         image = pg.Surface(
             (SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
         # image.fill("pink")
@@ -49,21 +49,21 @@ class Tile(pg.sprite.Sprite):
 
         self.rot = rotation
         self.flipped = flip
-        return image
+        self.image = image
 
     def rotate_left(self):
         rot = - 30 if self.flipped else 30
         self.rot = (self.rot + rot) % 360
-        self.image = self.generate_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.color, self.rot, self.flipped)
 
     def rotate_right(self):
         rot = 30 if self.flipped else -30
         self.rot = (self.rot + rot) % 360
-        self.image = self.generate_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.color, self.rot, self.flipped)
 
     def flip(self):
         self.flipped = not self.flipped
-        self.image = self.generate_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.color, self.rot, self.flipped)
 
     def draw_hat(self, x, y):
 
@@ -108,18 +108,28 @@ class Tile(pg.sprite.Sprite):
 class Player(Tile):
 
     def __init__(self, color="black"):
-        super().__init__(color)
         self.can_drop = True
+        super().__init__(color)
 
     def generate_new_tile(self, color):
         tile = Tile(color)
-        tile.image = tile.generate_surface(color, self.rot, self.flipped)
+        tile.update_surface(color, self.rot, self.flipped)
         tile.rect = self.rect.copy()
         return tile
 
+    def update_surface(self, color, rotation=0, flip=False):
+        super().update_surface(color, rotation, flip)
+        if self.can_drop == False:
+            image = self.image.copy()
+            pg.draw.lines(image, "red", True, self.draw_hat(
+                image.get_width() / 2, image.get_height() / 4.5), 2)
+            image = pg.transform.rotate(image, rotation)
+            image = pg.transform.flip(image, flip, False)
+            self.image = image
+
     def update(self):
         print(self.can_drop)
-        self.image = self.generate_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.color, self.rot, self.flipped)
         pos = pg.mouse.get_pos()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
