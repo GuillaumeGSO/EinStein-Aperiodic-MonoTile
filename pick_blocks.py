@@ -9,12 +9,110 @@ COLORS = [(0, 0, 255), (255, 255, 255), (255, 165, 0),
 SIZE = 50
 FPS = 60
 ROTATE_ANGLE = 60
+BACKGROUND_COLOR = "grey30"
+
+
+class App:
+
+    def __init__(self):
+        pg.init()
+
+        # Set the height and width of the screen
+        screen_width = 800
+        screen_height = 500
+        self.screen = pg.display.set_mode([screen_width, screen_height])
+
+        self.screen.fill(BACKGROUND_COLOR)
+
+        self.clock = pg.time.Clock()
+        self.game = Game(self)
+
+    def update(self):
+        self.game.update()
+        self.clock.tick(FPS)
+
+    def draw(self):
+        self.game.draw()
+        pg.display.flip()
+
+    def check_events(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+                pg.quit()
+                sys.exit()
+
+            if event.type == pg.MOUSEBUTTONDOWN:
+                self.game.mouse_click(pg.mouse.get_pos())
+
+            if event.type == pg.KEYDOWN and self.game.player.tile != None:
+                if event.key == pg.K_RIGHT:
+                    self.game.player.tile.rotate_right()
+                if event.key == pg.K_LEFT:
+                    self.game.player.tile.rotate_left()
+                if event.key == pg.K_SPACE:
+                    self.game.player.tile.flip()
+
+    def run(self):
+        while True:
+            self.check_events()
+            self.update()
+            self.draw()
+
+
+class Game():
+    def __init__(self, app):
+        self.app = app
+        self.player = Player()
+        self.tiles_group = pg.sprite.Group()
+        self.player_group = pg.sprite.GroupSingle()
+
+    def update(self):
+        self.player.can_drop = self.collision_test()
+        self.player.update()
+
+    def draw(self):
+        self.app.screen.fill(BACKGROUND_COLOR)
+        self.tiles_group.draw(self.app.screen)
+        self.player_group.draw(self.app.screen)
+
+    def collision_test(self):
+        if self.player.tile == None:
+            return False
+
+        collide = pg.sprite.spritecollide(
+            self.player.tile, self.tiles_group, False, pg.sprite.collide_mask)
+        return len(collide) == 0
+
+    def mouse_click(self, mouse_pos):
+
+        if self.app.screen.get_at(mouse_pos) != pg.color.Color(BACKGROUND_COLOR):
+            tile_found = False
+            for tile in self.tiles_group:
+                pos_in_mask = mouse_pos[0] - \
+                    tile.rect.x, mouse_pos[1] - tile.rect.y
+                touching = tile.rect.collidepoint(
+                    *mouse_pos) and tile.tile_mask.get_at(pos_in_mask)
+                if touching:
+                    # grab existing tile
+                    tile_found = True
+                    self.player.tile = tile
+                    self.player_group.add(self.player.tile)
+                    # tile.kill()
+            if not tile_found:
+                # create a new player
+                self.player.tile = Tile()
+                self.player_group.add(self.player.tile)
+        else:
+            tile = self.player.generate_new_tile()
+            self.tiles_group.add(tile)
+            self.player_group.empty()
+            self.player.tile = None
 
 
 class Tile(pg.sprite.Sprite):
 
     def __repr__(self) -> str:
-        return f"Rot:{self.rot}, flipped:{self.flipped}, color: {self.color}, image: {self.image}, image.rect: {self.image.get_rect()}"
+        return f"Rot:{self.rot}, flipped:{self.flipped}, image: {self.image}"
 
     def __init__(self):
 
@@ -43,7 +141,7 @@ class Tile(pg.sprite.Sprite):
 
         pg.draw.lines(image, "purple" if flip else "grey", True, Tile.draw_hat(
             image.get_width() / 2, image.get_height() / 4.5), 2)
-        pg.draw.circle(image, "purple", (image.get_width(
+        pg.draw.circle(image, "purple" if flip else "grey", (image.get_width(
         ) / 2, image.get_height() / 2), SIZE/10)
         image = pg.transform.rotate(image, rotation)
         image = pg.transform.flip(image, flip, False)
@@ -114,7 +212,7 @@ class Player():
 
     def generate_new_tile(self):
         tile = Tile()
-        tile.update_surface(self.tile.rot, self.tile.flipped)
+        tile.update_surface()
         tile.rect = self.tile.rect.copy()
         return tile
 
@@ -132,103 +230,6 @@ class Player():
         offset_y = self.tile.image.get_size()[1] - self.tile.rect.size[1]
         self.tile.rect.center = (self.tile.rect.x - offset_x / 2,
                                  self.tile.rect.y - offset_y / 2)
-
-
-class App:
-
-    def __init__(self):
-        pg.init()
-
-        # Set the height and width of the screen
-        screen_width = 800
-        screen_height = 500
-        self.screen = pg.display.set_mode([screen_width, screen_height])
-
-        self.screen.fill("black")
-
-        self.clock = pg.time.Clock()
-        self.game = Game(self)
-
-    def update(self):
-        self.game.update()
-        self.clock.tick(FPS)
-
-    def draw(self):
-        self.game.draw()
-        pg.display.flip()
-
-    def check_events(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-                pg.quit()
-                sys.exit()
-
-            if event.type == pg.MOUSEBUTTONDOWN:
-                self.game.mouse_click(pg.mouse.get_pos())
-
-            if event.type == pg.KEYDOWN and self.game.player.tile != None:
-                if event.key == pg.K_RIGHT:
-                    self.game.player.tile.rotate_right()
-                if event.key == pg.K_LEFT:
-                    self.game.player.tile.rotate_left()
-                if event.key == pg.K_SPACE:
-                    self.game.player.tile.flip()
-
-    def run(self):
-        while True:
-            self.check_events()
-            self.update()
-            self.draw()
-
-
-class Game():
-    def __init__(self, app):
-        self.app = app
-        self.player = Player()
-        self.tiles_group = pg.sprite.Group()
-        self.player_group = pg.sprite.GroupSingle()
-
-    def update(self):
-        self.player.can_drop = self.collision_test()
-        self.player.update()
-
-    def draw(self):
-        self.app.screen.fill("grey30")
-        self.tiles_group.draw(self.app.screen)
-        self.player_group.draw(self.app.screen)
-
-    def collision_test(self):
-        if self.player.tile == None:
-            return False
-
-        collide = pg.sprite.spritecollide(
-            self.player.tile, self.tiles_group, False, pg.sprite.collide_mask)
-        return len(collide) == 0
-
-    def mouse_click(self, mouse_pos):
-
-        if self.player.tile:
-            # Drop new tile and reset player
-            tile = self.player.generate_new_tile()
-            self.tiles_group.add(tile)
-            self.player.tile = None
-        else:
-            tile_found = False
-            for tile in self.tiles_group:
-                pos_in_mask = mouse_pos[0] - \
-                    tile.rect.x, mouse_pos[1] - tile.rect.y
-                touching = tile.rect.collidepoint(
-                    *mouse_pos) and tile.tile_mask.get_at(pos_in_mask)
-                if touching:
-                    # grab existing tile
-                    tile_found = True
-                    self.player.tile = tile
-                    self.player_group.add(self.player.tile)
-                    # tile.kill()
-            if not tile_found:
-                # create a new player
-                self.player.tile = Tile()
-                self.player_group.add(self.player.tile)
 
 
 if __name__ == "__main__":
