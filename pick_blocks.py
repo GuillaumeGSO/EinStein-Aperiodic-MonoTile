@@ -17,15 +17,14 @@ class Tile(pg.sprite.Sprite):
     def __repr__(self) -> str:
         return f"Rot:{self.rot}, flipped:{self.flipped}, color: {self.color}, image: {self.image}, image.rect: {self.image.get_rect()}"
 
-    def __init__(self, color="black"):
+    def __init__(self):
 
         super().__init__()
 
-        self.color = color
         self.rot = 0
         self.flipped = False
 
-        self.update_surface(color, self.rot, self.flipped)
+        self.update_surface(self.rot, self.flipped)
         self.image_orig = self.image.copy()
         self.tile_mask = pg.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
@@ -36,12 +35,13 @@ class Tile(pg.sprite.Sprite):
         image = pg.transform.flip(image, self.flipped, False)
         return image
 
-    def update_surface(self, color, rotation=0, flip=False):
+    def update_surface(self, rotation=0, flip=False):
+
         image = pg.Surface(
             (SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
-        if color:
-            pg.draw.polygon(image, color, Tile.draw_hat(
-                image.get_width() / 2, image.get_height() / 4.5))
+        pg.draw.polygon(image, COLORS[rotation//60], Tile.draw_hat(
+            image.get_width() / 2, image.get_height() / 4.5))
+
         pg.draw.lines(image, "purple" if flip else "grey", True, Tile.draw_hat(
             image.get_width() / 2, image.get_height() / 4.5), 2)
         pg.draw.circle(image, "purple", (image.get_width(
@@ -56,16 +56,16 @@ class Tile(pg.sprite.Sprite):
     def rotate_left(self):
         rot = - ROTATE_ANGLE if self.flipped else ROTATE_ANGLE
         self.rot = (self.rot + rot) % 360
-        self.update_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.rot, self.flipped)
 
     def rotate_right(self):
         rot = ROTATE_ANGLE if self.flipped else -ROTATE_ANGLE
         self.rot = (self.rot + rot) % 360
-        self.update_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.rot, self.flipped)
 
     def flip(self):
         self.flipped = not self.flipped
-        self.update_surface(self.color, self.rot, self.flipped)
+        self.update_surface(self.rot, self.flipped)
 
     def draw_hat(x, y):
 
@@ -113,9 +113,9 @@ class Player():
         self.tile: Tile = None
         self.can_drop = True
 
-    def generate_new_tile(self, color=None):
-        tile = Tile(color)
-        tile.update_surface(color, self.tile.rot, self.tile.flipped)
+    def generate_new_tile(self):
+        tile = Tile()
+        tile.update_surface(self.tile.rot, self.tile.flipped)
         tile.rect = self.tile.rect.copy()
         return tile
 
@@ -124,7 +124,7 @@ class Player():
             return
 
         self.tile.update_surface(
-            self.tile.color, self.tile.rot, self.tile.flipped)
+            self.tile.rot, self.tile.flipped)
         pos = pg.mouse.get_pos()
         self.tile.rect.x = pos[0]
         self.tile.rect.y = pos[1]
@@ -207,14 +207,10 @@ class Game():
         return len(collide) == 0
 
     def mouse_click(self, mouse_pos):
-        if self.player.tile and self.player.tile.color:
-            color = self.player.tile.color
-        else:
-            color = choice(COLORS)
 
         if self.player.tile:
             # Drop new tile and reset player
-            tile = self.player.generate_new_tile(color)
+            tile = self.player.generate_new_tile()
             self.tiles_group.add(tile)
             self.player.tile = None
         else:
