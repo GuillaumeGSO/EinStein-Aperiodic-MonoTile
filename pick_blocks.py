@@ -109,6 +109,34 @@ class Game():
             self.player_group.add(self.player.tile)
 
 
+class Player():
+
+    def __init__(self):
+        self.tile: Tile = None
+        self.can_drop = True
+
+    def generate_new_tile(self):
+        tile = Tile()
+        tile.update_surface(self.tile.rot, self.tile.flipped)
+        tile.rect = self.tile.rect.copy()
+        return tile
+
+    def update(self):
+        if self.tile == None:
+            return
+
+        self.tile.update_surface(
+            self.tile.rot, self.tile.flipped)
+        pos = pg.mouse.get_pos()
+        self.tile.rect.x = pos[0]
+        self.tile.rect.y = pos[1]
+
+        offset_x = self.tile.image.get_size()[0] - self.tile.rect.size[0]
+        offset_y = self.tile.image.get_size()[1] - self.tile.rect.size[1]
+        self.tile.rect.center = (self.tile.rect.x - offset_x / 2,
+                                 self.tile.rect.y - offset_y / 2)
+
+
 class Tile(pg.sprite.Sprite):
 
     def __repr__(self) -> str:
@@ -134,15 +162,17 @@ class Tile(pg.sprite.Sprite):
 
     def update_surface(self, rotation=0, flip=False):
 
-        image = pg.Surface(
-            (SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
+        image = pg.Surface((SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
+        image.fill("pink")
+
         pg.draw.polygon(image, COLORS[rotation//60], Tile.draw_hat(
             image.get_width() / 2, image.get_height() / 4.5))
 
         pg.draw.lines(image, "purple" if flip else "grey", True, Tile.draw_hat(
             image.get_width() / 2, image.get_height() / 4.5), 2)
-        pg.draw.circle(image, "purple" if flip else "grey", (image.get_width(
-        ) / 2, image.get_height() / 2), SIZE/10)
+
+        pg.draw.circle(image, "purple" if flip else "grey",
+                       (image.get_width() / 2, image.get_height() / 2), SIZE/10)
         image = pg.transform.rotate(image, rotation)
         image = pg.transform.flip(image, flip, False)
 
@@ -202,34 +232,6 @@ class Tile(pg.sprite.Sprite):
         # print(point8[1]-point13[1])
         return [point1, point2, point3, point4,
                 point5, point6, point7, point8, point9, point10, point11, point12, point13]
-
-
-class Player():
-
-    def __init__(self):
-        self.tile: Tile = None
-        self.can_drop = True
-
-    def generate_new_tile(self):
-        tile = Tile()
-        tile.update_surface(self.tile.rot, self.tile.flipped)
-        tile.rect = self.tile.rect.copy()
-        return tile
-
-    def update(self):
-        if self.tile == None:
-            return
-
-        self.tile.update_surface(
-            self.tile.rot, self.tile.flipped)
-        pos = pg.mouse.get_pos()
-        self.tile.rect.x = pos[0]
-        self.tile.rect.y = pos[1]
-
-        offset_x = self.tile.image.get_size()[0] - self.tile.rect.size[0]
-        offset_y = self.tile.image.get_size()[1] - self.tile.rect.size[1]
-        self.tile.rect.center = (self.tile.rect.x - offset_x / 2,
-                                 self.tile.rect.y - offset_y / 2)
 
 
 if __name__ == "__main__":
