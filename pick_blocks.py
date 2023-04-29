@@ -1,12 +1,11 @@
 
 import pygame as pg
 from math import cos, sin, sqrt, pi
-from random import choice
 import sys
 
 
-COLORS = [(0, 0, 255), (255, 255, 255), (255, 255, 0),
-          (0, 128, 0), (255, 165, 0), (255, 0, 0)]
+COLORS = [(0, 0, 255), (255, 255, 255), (255, 165, 0),
+          (0, 128, 0), (255, 255, 0), (255, 0, 0)]
 SIZE = 50
 FPS = 60
 ROTATE_ANGLE = 60
@@ -194,7 +193,7 @@ class Game():
         self.player.update()
 
     def draw(self):
-        self.app.screen.fill("black")
+        self.app.screen.fill("grey30")
         self.tiles_group.draw(self.app.screen)
         self.player_group.draw(self.app.screen)
 
