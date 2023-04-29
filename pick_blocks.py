@@ -4,10 +4,12 @@ from math import cos, sin, sqrt, pi
 from random import choice
 import sys
 
+
 COLORS = [(0, 0, 255), (255, 255, 255), (255, 255, 0),
           (0, 128, 0), (255, 165, 0), (255, 0, 0)]
 SIZE = 50
 FPS = 60
+ROTATE_ANGLE = 60
 
 
 class Tile(pg.sprite.Sprite):
@@ -37,10 +39,10 @@ class Tile(pg.sprite.Sprite):
     def update_surface(self, color, rotation=0, flip=False):
         image = pg.Surface(
             (SIZE * 3.1, SIZE * 2.3), pg.SRCALPHA)
-        # image.fill("pink")
-        pg.draw.polygon(image, color, self.draw_hat(
-            image.get_width() / 2, image.get_height() / 4.5))
-        pg.draw.lines(image, "purple" if flip else "grey", True, self.draw_hat(
+        if color:
+            pg.draw.polygon(image, color, Tile.draw_hat(
+                image.get_width() / 2, image.get_height() / 4.5))
+        pg.draw.lines(image, "purple" if flip else "grey", True, Tile.draw_hat(
             image.get_width() / 2, image.get_height() / 4.5), 2)
         pg.draw.circle(image, "purple", (image.get_width(
         ) / 2, image.get_height() / 2), SIZE/10)
@@ -52,12 +54,12 @@ class Tile(pg.sprite.Sprite):
         self.image = image
 
     def rotate_left(self):
-        rot = - 30 if self.flipped else 30
+        rot = - ROTATE_ANGLE if self.flipped else ROTATE_ANGLE
         self.rot = (self.rot + rot) % 360
         self.update_surface(self.color, self.rot, self.flipped)
 
     def rotate_right(self):
-        rot = 30 if self.flipped else -30
+        rot = ROTATE_ANGLE if self.flipped else -ROTATE_ANGLE
         self.rot = (self.rot + rot) % 360
         self.update_surface(self.color, self.rot, self.flipped)
 
@@ -65,7 +67,7 @@ class Tile(pg.sprite.Sprite):
         self.flipped = not self.flipped
         self.update_surface(self.color, self.rot, self.flipped)
 
-    def draw_hat(self, x, y):
+    def draw_hat(x, y):
 
         half = SIZE / 2
         apotheme = SIZE * sqrt(3) / 2
@@ -105,39 +107,32 @@ class Tile(pg.sprite.Sprite):
                 point5, point6, point7, point8, point9, point10, point11, point12, point13]
 
 
-class Player(Tile):
+class Player():
 
-    def __init__(self, color="black"):
+    def __init__(self):
+        self.tile: Tile = None
         self.can_drop = True
-        super().__init__(color)
 
-    def generate_new_tile(self, color):
+    def generate_new_tile(self, color=None):
         tile = Tile(color)
-        tile.update_surface(color, self.rot, self.flipped)
-        tile.rect = self.rect.copy()
+        tile.update_surface(color, self.tile.rot, self.tile.flipped)
+        tile.rect = self.tile.rect.copy()
         return tile
 
-    def update_surface(self, color, rotation=0, flip=False):
-        super().update_surface(color, rotation, flip)
-        if self.can_drop == False:
-            image = self.image.copy()
-            pg.draw.lines(image, "red", True, self.draw_hat(
-                image.get_width() / 2, image.get_height() / 4.5), 2)
-            image = pg.transform.rotate(image, rotation)
-            image = pg.transform.flip(image, flip, False)
-            self.image = image
-
     def update(self):
-        print(self.can_drop)
-        self.update_surface(self.color, self.rot, self.flipped)
-        pos = pg.mouse.get_pos()
-        self.rect.x = pos[0]
-        self.rect.y = pos[1]
+        if self.tile == None:
+            return
 
-        offset_x = self.image.get_size()[0] - self.rect.size[0]
-        offset_y = self.image.get_size()[1] - self.rect.size[1]
-        self.rect.center = (self.rect.x - offset_x / 2,
-                            self.rect.y - offset_y / 2)
+        self.tile.update_surface(
+            self.tile.color, self.tile.rot, self.tile.flipped)
+        pos = pg.mouse.get_pos()
+        self.tile.rect.x = pos[0]
+        self.tile.rect.y = pos[1]
+
+        offset_x = self.tile.image.get_size()[0] - self.tile.rect.size[0]
+        offset_y = self.tile.image.get_size()[1] - self.tile.rect.size[1]
+        self.tile.rect.center = (self.tile.rect.x - offset_x / 2,
+                                 self.tile.rect.y - offset_y / 2)
 
 
 class App:
@@ -172,13 +167,13 @@ class App:
             if event.type == pg.MOUSEBUTTONDOWN:
                 self.game.mouse_click(pg.mouse.get_pos())
 
-            if event.type == pg.KEYDOWN:
+            if event.type == pg.KEYDOWN and self.game.player.tile != None:
                 if event.key == pg.K_RIGHT:
-                    self.game.player.rotate_right()
+                    self.game.player.tile.rotate_right()
                 if event.key == pg.K_LEFT:
-                    self.game.player.rotate_left()
+                    self.game.player.tile.rotate_left()
                 if event.key == pg.K_SPACE:
-                    self.game.player.flip()
+                    self.game.player.tile.flip()
 
     def run(self):
         while True:
@@ -204,22 +199,24 @@ class Game():
         self.player_group.draw(self.app.screen)
 
     def collision_test(self):
+        if self.player.tile == None:
+            return False
+
         collide = pg.sprite.spritecollide(
-            self.player, self.tiles_group, False, pg.sprite.collide_mask)
+            self.player.tile, self.tiles_group, False, pg.sprite.collide_mask)
         return len(collide) == 0
 
     def mouse_click(self, mouse_pos):
-        if self.player_group.sprite:
-            self.player = self.player_group.sprite
-            # when having a moving player (ugly FIXME)
-            if self.player.color == "black":
-                color = choice(COLORS)
-            else:
-                color = self.player.color
+        if self.player.tile and self.player.tile.color:
+            color = self.player.tile.color
+        else:
+            color = choice(COLORS)
 
+        if self.player.tile:
+            # Drop new tile and reset player
             tile = self.player.generate_new_tile(color)
             self.tiles_group.add(tile)
-            self.player.kill()
+            self.player.tile = None
         else:
             tile_found = False
             for tile in self.tiles_group:
@@ -228,18 +225,15 @@ class Game():
                 touching = tile.rect.collidepoint(
                     *mouse_pos) and tile.tile_mask.get_at(pos_in_mask)
                 if touching:
+                    # grab existing tile
                     tile_found = True
-                    self.player = Player(tile.color)
-                    self.player.image = tile.generate_image_copy()
-                    self.player.rot = tile.rot
-                    self.player.flipped = tile.flipped
-                    self.player.rect = tile.rect
-                    self.player_group.add(self.player)
-                    tile.kill()
+                    self.player.tile = tile
+                    self.player_group.add(self.player.tile)
+                    # tile.kill()
             if not tile_found:
                 # create a new player
-                self.player = Player()
-                self.player_group.add(self.player)
+                self.player.tile = Tile()
+                self.player_group.add(self.player.tile)
 
 
 if __name__ == "__main__":
