@@ -84,9 +84,14 @@ class Game():
         return len(collide) == 0
 
     def mouse_click(self, mouse_pos):
+        if self.player.tile:
+            tile = self.player.generate_new_tile()
+            self.tiles_group.add(tile)
+            self.player_group.empty()
+            self.player.tile = None
+            return
 
         if self.app.screen.get_at(mouse_pos) != pg.color.Color(BACKGROUND_COLOR):
-            tile_found = False
             for tile in self.tiles_group:
                 pos_in_mask = mouse_pos[0] - \
                     tile.rect.x, mouse_pos[1] - tile.rect.y
@@ -94,19 +99,14 @@ class Game():
                     *mouse_pos) and tile.tile_mask.get_at(pos_in_mask)
                 if touching:
                     # grab existing tile
-                    tile_found = True
                     self.player.tile = tile
+                    self.tiles_group.remove(tile)
                     self.player_group.add(self.player.tile)
-                    # tile.kill()
-            if not tile_found:
-                # create a new player
-                self.player.tile = Tile()
-                self.player_group.add(self.player.tile)
+                    return
         else:
-            tile = self.player.generate_new_tile()
-            self.tiles_group.add(tile)
-            self.player_group.empty()
-            self.player.tile = None
+            # create a new player
+            self.player.tile = Tile()
+            self.player_group.add(self.player.tile)
 
 
 class Tile(pg.sprite.Sprite):
@@ -212,7 +212,7 @@ class Player():
 
     def generate_new_tile(self):
         tile = Tile()
-        tile.update_surface()
+        tile.update_surface(self.tile.rot, self.tile.flipped)
         tile.rect = self.tile.rect.copy()
         return tile
 
